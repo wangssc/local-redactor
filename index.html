@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+<title>回车敲下去那一秒</title>
+<style>
+  :root{
+    --paper:#f7f4ed;
+    --paper-2:#f1ece1;
+    --ink:#211e19;
+    --ink-soft:#4a443b;
+    --muted:#847b6d;
+    --rule:#ddd5c4;
+    --card:#fffdf8;
+    --accent:#a8452c;
+    --scene:#6f675a;
+    --serif:"Songti SC","SimSun","STSong","Noto Serif SC",Georgia,"Times New Roman",serif;
+    --sans:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.75;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:#e8d9c6}
+
+  /* ---------- 1. 首屏：一句场景句 + 工具 ---------- */
+  .hero{
+    max-width:60rem;
+    margin:0 auto;
+    padding:clamp(20px,2.6vw,30px) 22px 0;
+  }
+  .hero .lead{
+    font-family:var(--sans);
+    font-size:clamp(26px,3.3vw,37px);
+    line-height:1.36;
+    font-weight:700;
+    letter-spacing:.005em;
+    margin:0;
+  }
+  .scene{
+    margin:clamp(10px,1.1vw,13px) 0 0;
+    font-size:clamp(16px,1.55vw,19.5px);
+    line-height:1.62;
+    font-weight:400;
+    color:var(--scene);
+    max-width:42em;
+  }
+
+  .tryline{
+    margin:clamp(16px,2vw,22px) 0 9px;
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:.03em;
+    color:var(--ink-soft);
+  }
+  .examples{
+    display:flex;
+    flex-wrap:wrap;
+    gap:9px;
+    margin:0 0 18px;
+  }
+  .ex{
+    display:inline-flex;
+    flex-direction:column;
+    align-items:flex-start;
+    gap:1px;
+    text-align:left;
+    padding:8px 14px 9px;
+    border:1px solid var(--rule);
+    border-radius:12px;
+    background:transparent;
+    color:var(--ink);
+    line-height:1.3;
+  }
+  .ex b{font-size:13.5px;font-weight:600;letter-spacing:.01em}
+  .ex span{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+  .ex:hover{background:var(--card);border-color:#c6b9a1}
+  .ex[aria-pressed="true"]{background:#fbf1ea;border-color:#d9a68f}
+  .ex[aria-pressed="true"] b{color:var(--accent)}
+
+  .hero textarea,.hero .out{
+    height:196px;
+    min-height:196px;
+    overflow:auto;
+  }
+  .hero .bar{margin-top:14px}
+  .hero .legend{margin-top:12px}
+
+  /* ---------- 1b. 三张卡片：差异点摊开写 ---------- */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:13px;
+    margin-top:clamp(20px,2.4vw,26px);
+  }
+  .card{
+    background:#f4eee2;
+    border:1px solid #e7dfcd;
+    border-radius:14px;
+    padding:15px 17px 14px;
+  }
+  .card h2{
+    margin:0 0 5px;
+    font-size:15px;
+    font-weight:600;
+    letter-spacing:.01em;
+  }
+  .card p{
+    margin:0;
+    font-size:13.5px;
+    line-height:1.7;
+    color:var(--ink-soft);
+  }
+
+  /* ---------- 2. 文案 ---------- */
+  .essay{
+    max-width:35rem;
+    margin:0 auto;
+    padding:clamp(34px,5vw,58px) 24px clamp(48px,8vw,96px);
+    font-family:var(--serif);
+    font-size:clamp(18px,4.6vw,20.5px);
+    line-height:2.02;
+    letter-spacing:.012em;
+    color:var(--ink);
+  }
+  .essay p{margin:0 0 1.35em}
+  .essay .sting{
+    font-size:clamp(19px,4.9vw,22px);
+    font-weight:600;
+    margin-bottom:1.9em;
+  }
+  .essay .plain{color:var(--ink-soft)}
+  .essay ul{
+    list-style:none;
+    margin:0 0 1.35em;
+    padding:0;
+  }
+  .essay li{
+    position:relative;
+    padding-left:1.5em;
+    margin-bottom:.55em;
+  }
+  .essay li::before{
+    content:"—";
+    position:absolute;
+    left:0;
+    color:var(--accent);
+    opacity:.75;
+  }
+  .essay .turn{
+    margin:2.1em 0 1.9em;
+    padding-top:1.5em;
+    border-top:1px solid var(--rule);
+    font-size:clamp(21px,5.4vw,26px);
+    line-height:1.7;
+    font-weight:600;
+    letter-spacing:.01em;
+  }
+  .essay .turn .mark{
+    color:var(--accent);
+  }
+
+  /* ---------- 3. 工具（共用） ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+  }
+  .pane{display:flex;flex-direction:column;min-width:0}
+  .pane-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    gap:8px;
+    margin-bottom:8px;
+    font-size:13px;
+    letter-spacing:.06em;
+    color:var(--muted);
+  }
+  .pane-head b{color:var(--ink);font-weight:600;letter-spacing:.04em}
+  .pane-head span{font-variant-numeric:tabular-nums}
+  textarea, .out{
+    width:100%;
+    min-height:280px;
+    padding:16px 17px;
+    border:1px solid var(--rule);
+    border-radius:12px;
+    background:var(--card);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1.9;
+    box-shadow:0 1px 0 rgba(0,0,0,.02);
+  }
+  textarea{
+    resize:vertical;
+    display:block;
+    outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  textarea:focus{
+    border-color:#c0b49c;
+    box-shadow:0 0 0 3px rgba(168,69,44,.09);
+  }
+  .out{
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+  .out .empty{color:var(--muted);margin:0;font-size:14px}
+  .ph{
+    border-radius:4px;
+    padding:.06em .18em;
+    font-weight:600;
+    font-size:.94em;
+    white-space:nowrap;
+  }
+  .ph-person{background:#f7e3da;color:#9c3d24}
+  .ph-org{background:#e0ecf7;color:#2c5c88}
+  .ph-phone{background:#e0f0e6;color:#2b6a4c}
+  .ph-email{background:#ece5f6;color:#65468a}
+  .ph-id{background:#f6ecd4;color:#836118}
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px 18px;
+    margin-top:16px;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .swatch{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+  .fineprint{
+    margin-top:26px;
+    padding-top:18px;
+    border-top:1px dashed var(--rule);
+    font-size:13px;
+    line-height:1.85;
+    color:var(--muted);
+    max-width:52em;
+  }
+  .fineprint strong{color:var(--ink-soft);font-weight:600}
+
+  /* ---------- 4. 页尾说明 ---------- */
+  .notes{
+    max-width:62rem;
+    margin:0 auto;
+    padding:0 22px clamp(30px,4vw,44px);
+  }
+  .notes .fineprint{margin-top:0}
+  .bar{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:12px;
+  }
+  button{
+    font-family:var(--sans);
+    font-size:15px;
+    line-height:1;
+    padding:14px 22px;
+    border-radius:10px;
+    border:1px solid transparent;
+    cursor:pointer;
+    transition:transform .12s, background .15s, border-color .15s, color .15s;
+  }
+  button:active{transform:translateY(1px)}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+  .btn-main{
+    background:var(--ink);
+    color:#fbf7ef;
+    font-weight:600;
+    letter-spacing:.02em;
+  }
+  .btn-main:hover{background:#3a342b}
+  .btn-ghost{
+    background:transparent;
+    color:var(--ink-soft);
+    border-color:var(--rule);
+  }
+  .btn-ghost:hover{border-color:#c0b49c;color:var(--ink)}
+  .status{
+    font-size:14px;
+    color:var(--muted);
+    min-height:1.4em;
+  }
+  .status.ok{color:#2b6a4c}
+  .status.bad{color:var(--accent)}
+  .status .mono{
+    font-variant-numeric:tabular-nums;
+    letter-spacing:.02em;
+  }
+
+  footer{
+    max-width:62rem;
+    margin:0 auto;
+    padding:0 22px 56px;
+    font-size:12.5px;
+    color:var(--muted);
+    line-height:1.9;
+  }
+  footer .rule{height:1px;background:var(--rule);margin-bottom:18px}
+
+  @media (max-width:720px){
+    .grid{grid-template-columns:1fr}
+    textarea,.out{min-height:200px}
+    .hero textarea,.hero .out{height:170px;min-height:170px}
+    .hero .lead{line-height:1.44}
+    .cards{grid-template-columns:1fr;gap:10px}
+    .examples{gap:8px}
+    .ex{flex:1 1 46%}
+    .bar button{flex:1 1 auto}
+    .bar{gap:10px}
+    .status{flex-basis:100%}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition:none !important;animation:none !important}
+  }
+</style>
+</head>
+<body>
+
+<!-- ========== 首屏：一句场景句 + 当场能试的工具 ========== -->
+<section class="hero">
+  <h1 class="lead">回车敲下去那一秒，那份带客户名单的报告，就有一份不在我的电脑上了。</h1>
+  <p class="scene">你在用 AI 提效 —— 但总有一份文件，你不敢贴进去。</p>
+
+  <p class="tryline">没有文件？点一个试试</p>
+  <div class="examples" id="examples" role="group" aria-label="预置示例">
+    <button class="ex" type="button" data-ex="contract" aria-pressed="false"><b>一份合同</b><span>对方公司名 · 报价 · 违约条款</span></button>
+    <button class="ex" type="button" data-ex="resume" aria-pressed="false"><b>一份简历</b><span>姓名 · 手机 · 邮箱 · 前公司</span></button>
+    <button class="ex" type="button" data-ex="medical" aria-pressed="false"><b>一份病历</b><span>患者姓名 · 身份证 · 就诊医院</span></button>
+    <button class="ex" type="button" data-ex="incident" aria-pressed="false"><b>一份故障报告</b><span>客户名单 · 机房地址</span></button>
+  </div>
+
+  <div class="grid">
+    <div class="pane">
+      <div class="pane-head"><b>原文</b><span id="src-count">0 字</span></div>
+      <textarea id="src" spellcheck="false" autocomplete="off" aria-label="原文输入">11 月 3 日下午，北京华信科技有限公司的项目经理把一份带客户名单的故障报告，整段粘进了对话框。
+
+报告里提到：张某负责对接，李经理审批，王某复核；对方公司的联系人叫张总。他的邮箱是 zhang.zong@huaxin-tech.com，手机 13800138000。
+
+同一份报告还抄送给了深圳前海数据研究院，附件编号 REF-2023-0917，金额 128,000 元；扫描件上写着身份证号 11010119900307001X。</textarea>
+    </div>
+    <div class="pane">
+      <div class="pane-head"><b>脱敏稿</b><span id="out-count">0 字</span></div>
+      <div class="out" id="out" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button id="restore" class="btn-main" type="button">还原成原文</button>
+    <button id="copy" class="btn-ghost" type="button">复制脱敏稿</button>
+    <button id="export" class="btn-ghost" type="button">下载映射表</button>
+    <button id="import" class="btn-ghost" type="button">导入映射表还原</button>
+    <input type="file" id="mapfile" accept=".json,application/json" hidden>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="legend" id="legend">
+    <span><i class="swatch" style="background:#f7e3da"></i>人名</span>
+    <span><i class="swatch" style="background:#e0ecf7"></i>单位</span>
+    <span><i class="swatch" style="background:#e0f0e6"></i>电话</span>
+    <span><i class="swatch" style="background:#ece5f6"></i>邮箱</span>
+    <span><i class="swatch" style="background:#f6ecd4"></i>身份证</span>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>文件不出你的电脑</h2>
+      <p>这里没有上传按钮，因为它根本没有上传这个功能。断网也能用。</p>
+    </div>
+    <div class="card">
+      <h2>不是把内容毁掉</h2>
+      <p>换成的每个占位符都能换回来，一个字符不差。</p>
+    </div>
+    <div class="card">
+      <h2>没有账号，没有服务端</h2>
+      <p>不用注册，不用登录，没有人在服务器那边收你的东西。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 下面才是那段话 ========== -->
+<article class="essay">
+  <p class="sting">更扎的是：发出去之前，我一秒都没犹豫。</p>
+
+  <p>事情不复杂。我想让它帮我总结一份故障报告，整段粘进对话框，敲了回车。对话框就在书签栏第一格，图省事，不丢人。</p>
+
+  <p>我原以为这跟发给同事看一眼差不多——同事知道不能外传，看完就删。后来才想明白：对话框背后是另一家公司，我删掉聊天记录，不代表那边也删了。</p>
+
+  <p>我想查清楚到底发过什么。日志里只有一条加密的请求，文件里有什么、发给了谁，全对不上号。没有工单、没有批准、没有记录。那一刻我才后怕。</p>
+
+  <p>现在我改了做法：</p>
+
+  <ul>
+    <li>要问的那一段才贴，不整份扔进去。</li>
+    <li>公司名写「甲方」，人名写「某员工」，金额写区间。</li>
+    <li>真要碰原件，走公司统一买的那一版，合同写明不拿内容去训练。</li>
+  </ul>
+
+  <p class="plain">多花五分钟，回答笨一点。可我本来只是要它答个问题，不是要它替我保管原件。</p>
+
+  <p class="turn"><span class="mark">—</span> 你只是要它答个问题，不是要它替我保管原件。</p>
+</article>
+
+<!-- ========== 工具说明 ========== -->
+<section class="notes">
+  <p class="fineprint">
+    <strong>认什么：</strong>手机号（11 位、1 开头）、邮箱、身份证号（18 位）、以「有限公司 / 股份有限公司 / 集团 / 研究院 / 事务所 / 大学 / 医院」结尾的单位名，以及「姓 + 名」的两到三个字全名（后面跟着标点、空格，或「负责 / 审批」这类词）、「姓 + 某」和「姓 + 总 / 经理 / 主任 / 老师」这类人名。<br>
+    <strong>人名只认这几种写法。</strong>英文名、微信昵称，一律不动；「王先生」这类称谓、「张江」这类地名、「陈设」这类普通词，也不动。<strong>地址也不动。</strong>宁可漏，不猜错——猜错一次，你就不敢信它第二次。<br>
+    <strong>绝不碰：</strong>日期、金额、编号、英文缩写和标准号（GB/T、ISO、API 之类）。它们原样留着。
+  </p>
+</section>
+
+<footer>
+  <div class="rule"></div>
+  单个 HTML 文件，无外部依赖、无网络请求。页面加了 CSP（default-src 'none'），即使有人往里塞了联网代码也会被浏览器拦下。<br>
+  识别基于规则，不做语义理解，边角写法会漏——它是提醒你别整份扔进去的工具，不是合规审计。
+</footer>
+
+<script>
+/* ===== ENGINE:BEGIN ===== */
+var Redactor = (function () {
+  'use strict';
+
+  var LABEL = { person: '人名', org: '单位', phone: '电话', email: '邮箱', id: '身份证' };
+
+  // 常见单姓，用于「姓 + 某」「姓 + 职务」两种写法
+  var SURNAMES = '王李张刘陈杨黄赵吴周徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾肖田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙史陶黎贺顾毛郝龚邵万钱严覃武戴莫孔向汤';
+
+  // 「姓 + 职务」。先生 / 女士 不在里面：那是称谓，不当作人名处理。
+  var TITLES = ['总经理', '总监', '经理', '主任', '老师', '总'];
+
+  var SURNAME_MAP = {};
+  for (var si = 0; si < SURNAMES.length; si++) SURNAME_MAP[SURNAMES.charAt(si)] = true;
+
+  // 全名（姓 + 一到两个字）最容易误伤，靠三道闸挡：
+  //   闸一：右边界必须是标点 / 空白 / 行尾，或名字后面常见的动词、虚词；
+  //   闸二：候选里不能出现 STOP 字、数字、字母，也不能以称谓收尾（王先生、李女士）；
+  //   闸三：常见词黑名单——地名、普通词、专有名词，逐条列出来，宁可漏也不猜。
+  var NAME_TRAIL1 = '说的是在的和与及等已将把被向从对为有没也都还又会能可则就才已曾未不或并同了';
+  var NAME_TRAIL2 = {};
+  ('负责 审批 复核 签字 确认 提交 回复 表示 认为 指出 强调 介绍 陪同 带领 委派 指派 担任 兼任 ' +
+   '离职 入职 转岗 汇报 反馈 答复 回应 致电 来电 同意 拒绝 参加 主持 对接 联系 处理 跟进 安排 ' +
+   '组织 牵头 审核 批准 签发 送达 收到 完成 提供 要求 建议 决定 通知 提出 转交 抄送 转发 请示 ' +
+   '出席 签署 填写 核对 整理 撰写 上传 发送 接收 领取 归还 借用 申请 报名 缴费 付款 报销 出差 ' +
+   '请假 加班 值班 到岗 离岗 记录 补充 发言 说明 解释 协调 落实 执行 接待 列席 ' +
+   '参会 归档 结算 签收 交付 验收 分管 主管 召集 宣读 宣布 表态 提议 授权 委托').split(' ').forEach(function (w) {
+    if (w) NAME_TRAIL2[w] = true;
+  });
+
+  // 名字左边要有「入口」：行首、标点、空白，或这些引导词。否则「整段粘进」「对方公司」
+  // 这种跨词的组合会被当成名字（段、方 都是姓）。
+  var NAME_LEAD = {};
+  ('姓名 名字 叫 是 由 给 向 跟 和 与 及 找 让 请 通知 到 被 派 同 替 帮 经 了 ' +
+   '后 前 时 天 日 年 月 号 初 底 末 ' +
+   '联系人 负责人 对接人 经办人 收件人 发件人 申请人 代理人 委托人 ' +
+   '患者 客户 用户 员工 同事 甲方 乙方 代表 律师 医师 会计 ' +
+   '审核 审批 复核 签发 抄送 委派 指派 任命 聘请 联系 致电 交给 送给 转交 关于 至于')
+    .split(' ').forEach(function (w) { if (w) NAME_LEAD[w] = true; });
+
+  // 名字后面不能出现的「称谓尾巴」：命中的话整段不认，交给上面「姓 + 职务」那条规则
+  var NAME_TAIL = {};
+  ['先生', '女士', '小姐', '同志', '老师', '经理', '主任', '总监', '总经理', '总', '某', '某某']
+    .forEach(function (w) { NAME_TAIL[w] = true; });
+
+  // 常见词黑名单：看着像「姓 + 名」，其实是地名 / 普通词 / 专有名词
+  var NOT_NAME = {};
+  ('张江 张望 张罗 张贴 张狂 张扬 张榜 张嘴 张力 张目 ' +
+   '李子 李树 李庄 ' +
+   '王村 王朝 王国 王者 王道 王牌 王座 王府 王法 王位 ' +
+   '刘海 ' +
+   '陈设 陈列 陈年 陈旧 陈述 陈规 陈皮 陈醋 陈腐 ' +
+   '杨树 杨柳 杨梅 杨桃 ' +
+   '黄色 黄昏 黄瓜 黄金 黄土 黄牛 黄牌 黄历 黄河 黄山 黄海 ' +
+   '周围 周边 周末 周年 周期 周长 周刊 周到 周密 周报 ' +
+   '徐徐 徐缓 孙子 孙女 孙辈 ' +
+   '马路 马车 马匹 马上 马甲 马力 马达 马脚 马蜂 ' +
+   '朱红 朱砂 朱门 胡同 胡说 胡闹 胡乱 胡须 胡椒 ' +
+   '何必 何苦 何况 何时 何处 何等 何曾 何尝 何在 ' +
+   '高兴 高级 高手 高速 高度 高温 高压 高价 高档 高层 高原 高山 高空 高频 高龄 高烧 高薪 ' +
+   '高德 高德地图 ' +
+   '林木 林间 林中 林区 林场 林立 林业 罗列 罗盘 罗网 郑重 ' +
+   '谢绝 谢意 谢幕 谢顶 宋体 宋词 唐突 唐朝 唐诗 ' +
+   '许多 许久 许可 许愿 许诺 曾经 曾孙 肖像 肖似 ' +
+   '田野 田间 田地 田里 田埂 田螺 董事 董事会 于是 于此 于今 ' +
+   '余下 余外 余数 余额 余地 余热 余音 杜绝 杜鹃 杜撰 ' +
+   '叶子 叶片 叶面 程度 程序 程式 程控 苏醒 ' +
+   '丁香 丁点 丁字 任何 任务 任职 任意 任凭 任期 任命 任免 沈阳 ' +
+   '姜片 姜黄 姜汤 钟头 钟表 钟声 钟点 钟爱 陆续 陆地 陆军 陆路 陆上 汪洋 ' +
+   '范围 范畴 范例 范式 范本 ' +
+   '金额 金属 金融 金色 金牌 金价 金矿 金钱 金黄 金鱼 金刚 金星 金石 ' +
+   '石头 石油 石材 石灰 石阶 石桥 石板 石窟 ' +
+   '夏天 夏日 夏季 夏装 夏至 付出 付款 付费 付账 付印 ' +
+   '方向 方式 方法 方案 方面 方便 方形 方块 方针 方才 方位 方圆 方桌 ' +
+   '白天 白色 白酒 白纸 白云 白菜 白水 白费 白领 白板 熊猫 熊掌 秦朝 ' +
+   '江山 江南 江水 江面 江边 江河 江畔 江流 段落 段位 段子 ' +
+   '雷雨 雷声 雷达 雷同 雷电 雷鸣 雷管 ' +
+   '龙头 龙虾 龙舟 龙门 龙眼 龙卷 龙灯 史上 史书 史前 史料 史实 ' +
+   '陶瓷 陶器 陶土 陶醉 顾客 顾虑 顾问 顾及 顾盼 ' +
+   '毛巾 毛病 毛衣 毛孔 毛笔 毛线 毛皮 ' +
+   '万一 万分 万物 万年 万岁 万里 万千 万全 钱包 钱财 钱款 钱币 钱庄 ' +
+   '严格 严重 严肃 严厉 严密 严禁 严寒 严冬 武器 武力 武装 武术 武断 ' +
+   '莫非 莫大 莫如 莫不 孔子 孔雀 孔隙 孔洞 ' +
+   '向来 向上 向下 向前 向后 向内 向外 向往 汤圆 汤匙 汤药 汤面 汤水')
+    .split(' ').forEach(function (w) { if (w) NOT_NAME[w] = true; });
+
+  var DELIMS = '，。、；：！？,.;:!?（）()【】[]「」『』“”‘’《》〈〉—…·/|"\'';
+  var TOKEN_RE = /\[(?:人名|单位|电话|邮箱|身份证)\d+\]/g;
+
+  // 单位后缀，长的排前面
+  var ORG_SUFFIX = ['股份有限公司', '有限责任公司', '有限公司', '集团', '研究院', '事务所', '大学', '医院'];
+
+  // 这些字几乎不会出现在单位名内部，用作向左回溯时的截断点
+  var STOP = '的了是在和与及把被让给从向对这那我你他她它们就都也还又很太更最不没有说写发看问答去来要会能可想做用拿到个条件位名每各另其此该本咱您啊吧呢吗秒块元年月日号点';
+  var STOP_MAP = {};
+  for (var i = 0; i < STOP.length; i++) STOP_MAP[STOP.charAt(i)] = true;
+
+  var reEmail = /[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/g;
+  var reId = /[1-9]\d{5}(?:18|19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[\dXx]/g;
+  var rePhone = /1[3-9]\d{9}/g;
+  var reOrgSuffix = new RegExp(ORG_SUFFIX.join('|'), 'g');
+  var rePerson = new RegExp('[' + SURNAMES + '](?:' + TITLES.join('|') + '|某{1,2})', 'g');
+
+  function isDigit(ch) { return ch >= '0' && ch <= '9'; }
+
+  function isNameChar(ch) {
+    if (ch === '' || ch === ' ' || ch === '\n' || ch === '\t') return false;
+    if (STOP_MAP[ch]) return false;
+    return /[0-9A-Za-z\u4e00-\u9fa5()（）]/.test(ch);
+  }
+
+  function isDelim(ch) {
+    if (!ch) return true;
+    return DELIMS.indexOf(ch) >= 0;
+  }
+
+  // 全名用的「字」：只认汉字，且不能是 STOP 里的功能字
+  function isHanNameChar(ch) {
+    if (!ch) return false;
+    if (STOP_MAP[ch]) return false;
+    if (ch === '某') return false;
+    return /[\u4e00-\u9fa5]/.test(ch);
+  }
+
+  // 名字右边能不能收尾：标点 / 空白 / 行尾，或后面紧跟常见动词、虚词
+  function nameEndOK(s, end) {
+    if (end >= s.length) return true;
+    var ch = s.charAt(end);
+    if (ch === ' ' || ch === '\t' || ch === '\n' || ch === '\r') return true;
+    if (isDelim(ch)) return true;
+    if (NAME_TRAIL1.indexOf(ch) >= 0) return true;
+    if (NAME_TRAIL2[s.substr(end, 2)]) return true;
+    return false;
+  }
+
+  // 名字左边能不能起头：行首、标点 / 空白，或前面紧挨着引导词
+  function nameStartOK(s, start) {
+    if (start === 0) return true;
+    var prev = s.charAt(start - 1);
+    if (prev === ' ' || prev === '\t' || prev === '\n' || prev === '\r') return true;
+    if (isDelim(prev)) return true;
+    var from = Math.max(0, start - 4);
+    var back = s.slice(from, start);
+    for (var n = back.length; n >= 1; n--) {
+      if (NAME_LEAD[back.slice(back.length - n)]) return true;
+    }
+    return false;
+  }
+
+  // 姓 + 一到两个字：先试三字，再试两字，第一个过闸的就算
+  function findFullNames(s, list) {
+    for (var i = 0; i < s.length; i++) {
+      if (!SURNAME_MAP[s.charAt(i)]) continue;
+      if (!nameStartOK(s, i)) continue;
+      for (var len = 3; len >= 2; len--) {
+        var end = i + len;
+        if (end > s.length) continue;
+        var cand = s.slice(i, end);
+        if (!isHanNameChar(cand.charAt(1))) continue;
+        if (len === 3 && !isHanNameChar(cand.charAt(2))) continue;
+        if (NAME_TAIL[cand.slice(1)]) continue;
+        if (NOT_NAME[cand]) continue;
+        if (!nameEndOK(s, end)) continue;
+        list.push({ start: i, end: end, type: 'person', text: cand });
+        break;
+      }
+    }
+  }
+
+  function push(list, s, re, type, validate) {
+    re.lastIndex = 0;
+    var m;
+    while ((m = re.exec(s)) !== null) {
+      if (m[0].length === 0) { re.lastIndex++; continue; }
+      var start = m.index;
+      var end = start + m[0].length;
+      if (validate && !validate(s, start, end)) continue;
+      list.push({ start: start, end: end, type: type, text: m[0] });
+    }
+  }
+
+  function digitBoundary(s, start, end) {
+    if (start > 0 && isDigit(s.charAt(start - 1))) return false;
+    if (end < s.length && isDigit(s.charAt(end))) return false;
+    return true;
+  }
+
+  function findOrgs(s, list) {
+    reOrgSuffix.lastIndex = 0;
+    var m;
+    while ((m = reOrgSuffix.exec(s)) !== null) {
+      var suffixStart = m.index;
+      var k = suffixStart;
+      var taken = 0;
+      while (k > 0 && taken < 24) {
+        if (!isNameChar(s.charAt(k - 1))) break;
+        k--;
+        taken++;
+      }
+      if (suffixStart - k < 2) continue;         // 只有「有限公司」四个字，前面没有名字，不算
+      list.push({ start: k, end: suffixStart + m[0].length, type: 'org', text: s.slice(k, suffixStart + m[0].length) });
+    }
+  }
+
+  function collect(text) {
+    var list = [];
+    push(list, text, reEmail, 'email');
+    push(list, text, reId, 'id', digitBoundary);
+    push(list, text, rePhone, 'phone', digitBoundary);
+    findOrgs(text, list);
+    push(list, text, rePerson, 'person');
+    findFullNames(text, list);
+
+    list.sort(function (a, b) {
+      return a.start - b.start || (b.end - b.start) - (a.end - a.start);
+    });
+
+    var kept = [];
+    var lastEnd = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].start < lastEnd) continue;      // 与已接受的重叠，丢弃
+      kept.push(list[i]);
+      lastEnd = list[i].end;
+    }
+    return kept;
+  }
+
+  function redact(text) {
+    text = String(text == null ? '' : text);
+    var matches = collect(text);
+    var map = {};
+    var counters = {};
+    var seen = {};
+    var segs = [];
+    var pos = 0;
+
+    for (var i = 0; i < matches.length; i++) {
+      var m = matches[i];
+      if (m.start > pos) segs.push({ t: text.slice(pos, m.start), k: null });
+
+      var key = m.type + '\u0000' + m.text;
+      var ph;
+      if (Object.prototype.hasOwnProperty.call(seen, key)) {
+        ph = seen[key];                           // 同一个词复用同一个编号
+      } else {
+        counters[m.type] = (counters[m.type] || 0) + 1;
+        ph = '[' + LABEL[m.type] + counters[m.type] + ']';
+        seen[key] = ph;
+        map[ph] = m.text;
+      }
+      segs.push({ t: ph, k: m.type });
+      pos = m.end;
+    }
+    if (pos < text.length) segs.push({ t: text.slice(pos), k: null });
+
+    var plain = '';
+    for (var j = 0; j < segs.length; j++) plain += segs[j].t;
+
+    return { segs: segs, plain: plain, map: map, counts: counters, matches: matches.length };
+  }
+
+  function restoreInfo(text, map) {
+    var hit = 0, miss = 0;
+    var outText = String(text == null ? '' : text).replace(TOKEN_RE, function (token) {
+      if (Object.prototype.hasOwnProperty.call(map, token)) { hit++; return map[token]; }
+      miss++;
+      return token;
+    });
+    return { text: outText, hit: hit, miss: miss };
+  }
+
+  function restore(text, map) {
+    return restoreInfo(text, map).text;
+  }
+
+  return { redact: redact, restore: restore, restoreInfo: restoreInfo, LABEL: LABEL };
+})();
+/* ===== ENGINE:END ===== */
+
+(function () {
+  'use strict';
+
+  var ta = document.getElementById('src');
+  var out = document.getElementById('out');
+  var statusEl = document.getElementById('status');
+  var btnRestore = document.getElementById('restore');
+  var btnCopy = document.getElementById('copy');
+  var btnExport = document.getElementById('export');
+  var btnImport = document.getElementById('import');
+  var fileInput = document.getElementById('mapfile');
+  var srcCount = document.getElementById('src-count');
+  var outCount = document.getElementById('out-count');
+  var exButtons = document.querySelectorAll('.ex');
+
+  var state = { mode: 'redact', map: {}, source: '', restored: '' };
+
+  // 四份预置样例。全部是编的：人名一律「姓 + 某」，公司一律「某某…」，
+  // 手机号用 1xx0000000x，邮箱用 example.com。看一眼就知道不是真数据。
+  var EXAMPLES = {
+    contract: '甲方：某某（北京）科技有限公司\n' +
+      '乙方：某某信息技术有限公司\n\n' +
+      '合同总价：人民币 386,000 元整（含税）。\n' +
+      '付款方式：签订后 5 个工作日内付 30%，验收合格后付清余款。\n\n' +
+      '违约条款：任一方逾期交付，每逾期一日按合同总额的 0.5% 支付违约金；逾期超过 15 日，对方有权解除合同。\n\n' +
+      '甲方联系人：王某，手机 13000000001，邮箱 wang@example.com。',
+
+    resume: '姓名：张某\n' +
+      '性别：男　年龄：34\n' +
+      '手机：13800000002\n' +
+      '邮箱：zhang.mou@example.com\n' +
+      '前公司：某某网络科技有限公司\n' +
+      '职位：后端开发工程师　工作年限：6 年\n' +
+      '离职原因：合同到期，正常交接',
+
+    medical: '患者姓名：李某，男，42 岁。\n' +
+      '身份证号：110101199001010011\n' +
+      '就诊医院：某某市第一人民医院\n' +
+      '主诉：反复咳嗽 3 周，夜间加重。\n' +
+      '诊断：社区获得性肺炎。\n' +
+      '处方：某某沙星片，每次 0.2 g，每日两次，连服 7 天。',
+
+    incident: '故障时间：11 月 3 日 14:20 — 15:05\n' +
+      '影响范围：某某集团华东区客户，涉及客户联系人王某、赵某、陈某。\n' +
+      '机房地址：某某市某某区某某路 18 号 A 座 3 层。\n' +
+      '初步原因：某某云科技有限公司提供的负载均衡器固件缺陷。\n' +
+      '处理人：刘某，手机 13900000003。'
+  };
+
+  function escapeHtml(s) {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function charLen(s) {
+    return Array.from ? Array.from(s).length : s.length;
+  }
+
+  function setStatus(text, cls) {
+    statusEl.textContent = text;
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function paintRedacted() {
+    var text = ta.value;
+    state.source = text;
+    state.mode = 'redact';
+    resetCopyLabel();
+
+    srcCount.textContent = charLen(text) + ' 字';
+
+    if (!text.trim()) {
+      out.innerHTML = '<p class="empty">左边输入，这里实时出现脱敏稿。</p>';
+      outCount.textContent = '0 字';
+      state.map = {};
+      btnRestore.textContent = '还原成原文';
+      setStatus('');
+      return;
+    }
+
+    var r = Redactor.redact(text);
+    state.map = r.map;
+
+    var html = '';
+    for (var i = 0; i < r.segs.length; i++) {
+      var seg = r.segs[i];
+      if (seg.k) {
+        html += '<span class="ph ph-' + seg.k + '">' + escapeHtml(seg.t) + '</span>';
+      } else {
+        html += escapeHtml(seg.t);
+      }
+    }
+    out.innerHTML = html;
+    outCount.textContent = charLen(r.plain) + ' 字';
+    btnRestore.textContent = '还原成原文';
+
+    var parts = [];
+    var order = ['person', 'org', 'phone', 'email', 'id'];
+    for (var j = 0; j < order.length; j++) {
+      var n = r.counts[order[j]];
+      if (n) parts.push(Redactor.LABEL[order[j]] + ' ' + n);
+    }
+    if (parts.length) {
+      setStatus('已替换 ' + r.matches + ' 处：' + parts.join(' · '));
+    } else {
+      setStatus('没找到要替换的东西，原文原样留着。');
+    }
+  }
+
+  function doRestore() {
+    if (state.mode === 'restore') { paintRedacted(); return; }
+
+    var text = ta.value;
+    if (!text.trim()) { setStatus('左边还是空的。'); return; }
+
+    if (state.source !== text) paintRedacted();
+
+    var restored = Redactor.restore(out.textContent, state.map);
+    state.mode = 'restore';
+    state.restored = restored;
+
+    out.textContent = restored;
+    outCount.textContent = charLen(restored) + ' 字';
+    btnRestore.textContent = '再脱敏一次';
+    resetCopyLabel();
+
+    if (restored === state.source) {
+      setStatus('✓ 已还原，与原文逐字一致（共 ' + charLen(restored) + ' 字，一个字符不差）。', 'ok');
+    } else {
+      setStatus('✗ 还原后与原文有差异，请检查。', 'bad');
+    }
+  }
+
+  // ---------- 复制脱敏稿 ----------
+  var copyTimer = 0;
+
+  function resetCopyLabel() {
+    if (copyTimer) { clearTimeout(copyTimer); copyTimer = 0; }
+    btnCopy.textContent = '复制脱敏稿';
+  }
+
+  // 剪贴板写不进去时的兜底：临时 textarea + execCommand
+  function legacyCopy(text) {
+    var tmp = document.createElement('textarea');
+    tmp.value = text;
+    tmp.setAttribute('readonly', '');
+    tmp.style.position = 'fixed';
+    tmp.style.top = '-1000px';
+    tmp.style.left = '-1000px';
+    tmp.style.opacity = '0';
+    document.body.appendChild(tmp);
+    var ok = false;
+    try {
+      tmp.select();
+      tmp.setSelectionRange(0, text.length);
+      ok = document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(tmp);
+    return ok;
+  }
+
+  function copyDone(text) {
+    btnCopy.textContent = '已复制 ✓';
+    if (copyTimer) clearTimeout(copyTimer);
+    copyTimer = setTimeout(function () { btnCopy.textContent = '复制脱敏稿'; }, 2000);
+    setStatus('✓ 已复制到剪贴板（' + charLen(text) + ' 字），可以直接粘给 AI。', 'ok');
+  }
+
+  function copyFailed() {
+    resetCopyLabel();
+    setStatus('✗ 复制失败：浏览器没给剪贴板权限。请手动选中右边的文字，按 Ctrl+C 复制。', 'bad');
+  }
+
+  function doCopy() {
+    if (!ta.value.trim() || out.querySelector('.empty')) {
+      setStatus('右边还没有脱敏稿，先贴一段文字。', 'bad');
+      return;
+    }
+    var text = out.textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        copyDone(text);
+      }, function () {
+        if (legacyCopy(text)) copyDone(text); else copyFailed();
+      });
+    } else if (legacyCopy(text)) {
+      copyDone(text);
+    } else {
+      copyFailed();
+    }
+  }
+
+  // ---------- 映射表：导出 / 导入 ----------
+  function stamp() {
+    var d = new Date();
+    function p(n) { return (n < 10 ? '0' : '') + n; }
+    return '' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+  }
+
+  function buildMapDoc() {
+    var counts = {};
+    var keys = 0;
+    for (var k in state.map) {
+      if (!Object.prototype.hasOwnProperty.call(state.map, k)) continue;
+      keys++;
+      var m = /^\[(人名|单位|电话|邮箱|身份证)\d+\]$/.exec(k);
+      var t = m ? m[1] : '其它';
+      counts[t] = (counts[t] || 0) + 1;
+    }
+    return {
+      version: 1,
+      format: 'redaction-map',
+      generator: '回车敲下去那一秒 · 本地脱敏工具',
+      createdAt: new Date().toISOString(),
+      fields: {
+        version: '格式版本号，当前为 1。导入时先看这个字段，不是 1 就不认。',
+        format: '固定值 redaction-map，用来确认这是本工具导出的映射表。',
+        generator: '导出它的页面，只作说明，导入时不读。',
+        createdAt: '导出时间，本机时钟，ISO 8601 格式，只作说明，导入时不读。',
+        map: '占位符 → 原文。键是脱敏稿里的方括号占位符（例如 [人名1]），值是它对应的原文；导入后按这张表逐字换回。',
+        counts: '按类型统计的占位符个数，只作说明，导入时不读。'
+      },
+      map: state.map,
+      counts: counts
+    };
+  }
+
+  function doExport() {
+    var keys = 0;
+    for (var k in state.map) if (Object.prototype.hasOwnProperty.call(state.map, k)) keys++;
+    if (!keys) {
+      setStatus('右边还没有占位符，没有可导出的映射表。', 'bad');
+      return;
+    }
+    var doc = buildMapDoc();
+    var name = 'redaction-map-' + stamp() + '.json';
+    var text = JSON.stringify(doc, null, 2);
+    try {
+      var blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+      // 只在内存里生成一个临时地址，不经过网络
+      var api = window.URL || window.webkitURL;
+      var makeBlob = api.createObjectURL;
+      var dropBlob = api.revokeObjectURL;
+      var url = makeBlob(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { dropBlob(url); }, 4000);
+      setStatus('✓ 映射表已下载：' + name + '（' + keys + ' 条）。刷新后把它导入就能还原。', 'ok');
+    } catch (e) {
+      setStatus('✗ 下载失败：浏览器拦住了文件保存。', 'bad');
+    }
+  }
+
+  function importMapFile(file) {
+    var reader = new FileReader();
+    reader.onerror = function () {
+      setStatus('✗ 读不了这个文件。', 'bad');
+    };
+    reader.onload = function () {
+      var txt = String(reader.result || '').replace(/^\uFEFF/, '');
+      var doc;
+      try {
+        doc = JSON.parse(txt);
+      } catch (e) {
+        setStatus('✗ 这个文件不是合法的 JSON，读不出来。', 'bad');
+        return;
+      }
+      if (!doc || typeof doc !== 'object' || !doc.map || typeof doc.map !== 'object') {
+        setStatus('✗ 文件里没有 map 字段，不是本工具导出的映射表。', 'bad');
+        return;
+      }
+      if (doc.version !== 1) {
+        setStatus('✗ 映射表版本对不上（读到 ' + JSON.stringify(doc.version) + '，这个页面只认 1）。', 'bad');
+        return;
+      }
+      var map = {};
+      var n = 0;
+      var skipped = 0;
+      for (var k in doc.map) {
+        if (!Object.prototype.hasOwnProperty.call(doc.map, k)) continue;
+        if (typeof doc.map[k] === 'string') { map[k] = doc.map[k]; n++; } else { skipped++; }
+      }
+      if (!n) {
+        setStatus('✗ 映射表是空的，没有能用的条目。', 'bad');
+        return;
+      }
+
+      var text = ta.value;
+      if (!text.trim()) {
+        setStatus('左边还是空的。先把脱敏稿贴进左边的框，再导入映射表。', 'bad');
+        return;
+      }
+
+      var r = Redactor.restoreInfo(text, map);
+      state.map = map;
+      state.mode = 'restore';
+      state.source = r.text;
+      state.restored = r.text;
+      resetCopyLabel();
+      out.textContent = r.text;
+      outCount.textContent = charLen(r.text) + ' 字';
+      btnRestore.textContent = '再脱敏一次';
+
+      if (r.hit === 0) {
+        setStatus('✗ 左边这段里没有能对上的占位符，一个字都没换。确认贴的是脱敏稿。', 'bad');
+      } else if (r.miss) {
+        setStatus('已还原 ' + r.hit + ' 处；另有 ' + r.miss + ' 个占位符在这张表里没有对应项，原样留着。' +
+          (skipped ? '（表里有 ' + skipped + ' 条不是文本，已跳过）' : ''), 'bad');
+      } else {
+        setStatus('✓ 已按映射表还原 ' + r.hit + ' 处（表里共 ' + n + ' 条），没有剩下对不上的占位符。', 'ok');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+  }
+
+  function markExample(key) {
+    for (var i = 0; i < exButtons.length; i++) {
+      exButtons[i].setAttribute('aria-pressed', exButtons[i].getAttribute('data-ex') === key ? 'true' : 'false');
+    }
+  }
+
+  function useExample(key) {
+    var text = EXAMPLES[key];
+    if (typeof text !== 'string') return;
+    ta.value = text;
+    markExample(key);
+    paintRedacted();
+  }
+
+  ta.addEventListener('input', function () { markExample(null); paintRedacted(); });
+  btnRestore.addEventListener('click', doRestore);
+  btnCopy.addEventListener('click', doCopy);
+  btnExport.addEventListener('click', doExport);
+  btnImport.addEventListener('click', function () {
+    fileInput.value = '';          // 允许连续导入同一个文件
+    fileInput.click();
+  });
+  fileInput.addEventListener('change', function () {
+    if (this.files && this.files[0]) importMapFile(this.files[0]);
+  });
+  for (var e = 0; e < exButtons.length; e++) {
+    exButtons[e].addEventListener('click', function () {
+      useExample(this.getAttribute('data-ex'));
+    });
+  }
+
+  paintRedacted();
+})();
+</script>
+</body>
+</html>
